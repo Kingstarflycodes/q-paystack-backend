@@ -5,7 +5,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { card_number, expiry_month, expiry_year, cvv, pin, amount, email } = req.body;
+  const { card_number, expiry_month, expiry_year, cvv, pin, amount, email, subaccount } = req.body;
 
   try {
     const response = await axios.post(
@@ -19,7 +19,8 @@ export default async function handler(req, res) {
         },
         pin: pin,
         amount: amount,
-        email: email
+        email: email,
+        subaccount: subaccount
       },
       {
         headers: {
