@@ -5,13 +5,14 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { email, amount } = req.body;
+  const { email, amount, subaccount } = req.body;
 
   try {
     const response = await axios.post('https://api.paystack.co/transaction/initialize', {
       email,
       amount,
-      channels: ['bank_transfer']
+      channels: ['bank_transfer'],
+      subaccount
     }, {
       headers: {
         Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
