@@ -1,10 +1,8 @@
 import axios from 'axios';
 
-// Paystack API base URL
 const PAYSTACK_API_URL = 'https://api.paystack.co/transaction/initialize';
 
 export default async function handler(req, res) {
-  // Restrict to POST method
   if (req.method !== 'POST') {
     return res.status(405).json({ 
       error: 'Method not allowed',
@@ -12,10 +10,9 @@ export default async function handler(req, res) {
     });
   }
 
-  // Extract and validate request body
   const { email, amount, subaccount } = req.body;
 
-  // Input validation
+  // Basic input validation
   if (!email || !amount || !subaccount) {
     return res.status(400).json({ 
       error: 'Missing required fields',
@@ -32,11 +29,12 @@ export default async function handler(req, res) {
     });
   }
 
-  // Validate amount
-  if (typeof amount !== 'number' || amount <= 0) {
+  // Convert amount to number if string
+  const parsedAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
+  if (isNaN(parsedAmount) || parsedAmount <= 0) {
     return res.status(400).json({ 
       error: 'Invalid amount',
-      message: 'Amount must be a positive number'
+      message: 'Amount must be aধা positive number'
     });
   }
 
@@ -53,10 +51,9 @@ export default async function handler(req, res) {
       PAYSTACK_API_URL,
       {
         email,
-        amount: Math.round(amount * 100), // Convert to kobo and ensure integer
+        amount: Math.round(parsedAmount * 100), // Convert to kobo
         channels: ['bank_transfer'],
         subaccount,
-        // Optional: Add metadata for better tracking
         metadata: {
           timestamp: new Date().toISOString(),
           requestId: req.headers['x-request-id'] || 'N/A'
@@ -68,11 +65,10 @@ export default async function handler(req, res) {
           'Content-Type': 'application/json',
           'Cache-Control': 'no-cache'
         },
-        timeout: 10000 // Set timeout to 10 seconds
+        timeout: 10000
       }
     );
 
-    // Validate response structure
     if (!response.data?.data) {
       throw new Error('Invalid response from Paystack API');
     }
@@ -88,14 +84,12 @@ export default async function handler(req, res) {
     });
 
   } catch (error) {
-    // Log error for debugging
     console.error('Paystack transaction initialization error:', {
       message: error.message,
       response: error?.response?.data,
       status: error?.response?.status
     });
 
-    // Handle specific Paystack errors
     const statusCode = error?.response?.status || 500;
     const errorMessage = error?.response?.data?.message || 'Error initializing bank transfer';
     
