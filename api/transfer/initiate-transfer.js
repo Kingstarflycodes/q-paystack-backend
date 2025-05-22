@@ -5,31 +5,20 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  console.log('Request body:', req.body);
-
   const { email, amount, subaccount } = req.body;
 
-  if (!email || !amount || !subaccount) {
-    console.warn('Missing fields:', { email, amount, subaccount });
-    return res.status(400).json({ error: 'Missing required fields' });
-  }
-
   try {
-    const response = await axios.post(
-      'https://api.paystack.co/transaction/initialize',
-      {
-        email: String(email).trim(),
-        amount: Number(amount) * 100,
-        channels: ['bank_transfer'],
-        subaccount
-      },
-      {
-        headers: {
-          Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
-          'Content-Type': 'application/json'
-        }
+    const response = await axios.post('https://api.paystack.co/transaction/initialize', {
+      email: email,
+      amount: amount,
+      channels: ['bank_transfer'],
+      subaccount: subaccount
+    }, {
+      headers: {
+        Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+        'Content-Type': 'application/json'
       }
-    );
+    });
 
     const data = response.data.data;
 
