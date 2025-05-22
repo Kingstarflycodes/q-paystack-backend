@@ -9,7 +9,7 @@ export default async function handler(req, res) {
 
   try {
     const response = await axios.post('https://api.paystack.co/transaction/initialize', {
-      email,
+      email: String(email).trim(),
       amount: amount * 100,
       channels: ['bank_transfer'],
       subaccount
