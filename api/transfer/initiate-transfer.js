@@ -1,102 +1,38 @@
 import axios from 'axios';
 
-const PAYSTACK_API_URL = 'https://api.paystack.co/transaction/initialize';
-
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
-    return res.status(405).json({ 
-      error: 'Method not allowed',
-      message: 'Only POST requests are allowed'
-    });
+    return res.status(405).json({ error: 'Method not allowed' });
   }
 
   const { email, amount, subaccount } = req.body;
 
-  // Basic input validation
-  if (!email || !amount || !subaccount) {
-    return res.status(400).json({ 
-      error: 'Missing required fields',
-      message: 'Email, amount, and subaccount are required'
-    });
-  }
-
-  // Validate email format
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!emailRegex.test(email)) {
-    return res.status(400).json({ 
-      error: 'Invalid email',
-      message: 'Please provide a valid email address'
-    });
-  }
-
-  // Convert amount to number if string
-  const parsedAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
-  if (isNaN(parsedAmount) || parsedAmount <= 0) {
-    return res.status(400).json({ 
-      error: 'Invalid amount',
-      message: 'Amount must be aধা positive number'
-    });
-  }
-
-  // Validate Paystack secret key
-  if (!process.env.PAYSTACK_SECRET_KEY) {
-    return res.status(500).json({ 
-      error: 'Server configuration error',
-      message: 'Paystack secret key is not configured'
-    });
-  }
-
   try {
-    const response = await axios.post(
-      PAYSTACK_API_URL,
-      {
-        email,
-        amount: Math.round(parsedAmount * 100), // Convert to kobo
-        channels: ['bank_transfer'],
-        subaccount,
-        metadata: {
-          timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'] || 'N/A'
-        }
-      },
-      {
-        headers: {
-          Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
-          'Content-Type': 'application/json',
-          'Cache-Control': 'no-cache'
-        },
-        timeout: 10000
+    const response = await axios.post('https://api.paystack.co/transaction/initialize', {
+      email: email,
+      amount: amount * 100,
+      channels: ['bank_transfer'],
+      subaccount: subaccount
+    }, {
+      headers: {
+        Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+        'Content-Type': 'application/json'
       }
-    );
+    });
 
-    if (!response.data?.data) {
-      throw new Error('Invalid response from Paystack API');
-    }
+    const data = response.data.data;
 
-    const { reference, authorization_url, access_code } = response.data.data;
-
-    return res.status(200).json({
+    res.status(200).json({
       status: 'pending',
-      reference,
-      authorization_url,
-      access_code,
-      timestamp: new Date().toISOString()
+      reference: data.reference,
+      authorization_url: data.authorization_url,
+      access_code: data.access_code
     });
 
   } catch (error) {
-    console.error('Paystack transaction initialization error:', {
-      message: error.message,
-      response: error?.response?.data,
-      status: error?.response?.status
-    });
-
-    const statusCode = error?.response?.status || 500;
-    const errorMessage = error?.response?.data?.message || 'Error initializing bank transfer';
-    
-    return res.status(statusCode).json({
-      error: 'Transaction initialization failed',
-      message: errorMessage,
-      code: error?.response?.data?.code || 'UNKNOWN_ERROR'
+    console.error('Bank transfer init error:', error?.response?.data || error.message);
+    res.status(500).json({
+      error: error?.response?.data || 'Error initializing bank transfer'
     });
   }
 }
