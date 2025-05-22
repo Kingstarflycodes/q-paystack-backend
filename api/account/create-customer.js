@@ -6,7 +6,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ success: false, message: 'Method not allowed' });
   }
 
-  const { email, first_name, last_name } = req.body;
+  const { email, full_name } = req.body;
 
   // Validate required fields
   if (!email || !first_name || !last_name) {
@@ -19,7 +19,7 @@ export default async function handler(req, res) {
   try {
     const response = await axios.post(
       'https://api.paystack.co/customer',
-      { email, first_name, last_name },
+      { email, full_name },
       {
         headers: {
           Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
