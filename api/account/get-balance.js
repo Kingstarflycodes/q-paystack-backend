@@ -1,48 +1,49 @@
+// /api/get-balance.js
+
 import axios from 'axios';
 
 export default async function handler(req, res) {
-  // Only allow POST requests
   if (req.method !== 'POST') {
-    return res.status(405).json({ error: "Method not allowed" });
+    return res.status(405).json({ error: 'Only POST allowed' });
   }
 
   const { customerCode } = req.body;
 
   if (!customerCode) {
-    return res.status(400).json({ error: "Missing customerCode in body" });
+    return res.status(400).json({ error: 'Customer code is required' });
   }
-
-  const PAYSTACK_SECRET = process.env.PAYSTACK_SECRET_KEY;
 
   try {
     const response = await axios.get(`https://api.paystack.co/customer/${customerCode}/transactions`, {
       headers: {
-        Authorization: `Bearer ${PAYSTACK_SECRET}`,
-        'Content-Type': 'application/json'
+        Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`
       }
     });
 
-    const transactions = response.data.data || [];
+    const transactions = response.data.data;
 
-    const successfulBankTransactions = transactions.filter(txn =>
-      txn.status === 'success' && txn.channel === 'bank'
-    );
+    if (!transactions || transactions.length === 0) {
+      return res.status(200).json({
+        customerCode,
+        totalReceived: 0,
+        message: 'No transactions found for this customer.'
+      });
+    }
 
-    const totalReceived = successfulBankTransactions.reduce((sum, txn) => {
-      return sum + txn.amount / 100;
-    }, 0);
+    const successfulTransactions = transactions.filter(tx => tx.status === 'success');
+    const totalReceived = successfulTransactions.reduce((sum, tx) => sum + tx.amount, 0) / 100;
 
     return res.status(200).json({
       customerCode,
       totalReceived,
-      transactionCount: successfulBankTransactions.length
+      message: 'Balance calculated from successful transactions.'
     });
 
   } catch (error) {
-    console.error("Paystack API Error:", error.response?.data || error.message);
+    console.error("Paystack API error:", error.response?.data || error.message);
     return res.status(500).json({
-        error: "Failed to fetch transactions",
-        details: error.response?.data || error.message
+      error: 'Failed to fetch transactions',
+      details: error.response?.data || error.message
     });
   }
 }
