@@ -14,33 +14,38 @@ export default async function handler(req, res) {
   }
 
   try {
-    const response = await axios.get(`https://api.paystack.co/customer/${customerCode}/transactions`, {
+    const response = await axios.get('https://api.paystack.co/transaction', {
       headers: {
         Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`
+      },
+      params: {
+        perPage: 50 // Adjust as needed
       }
     });
 
-    const transactions = response.data.data;
+    const allTransactions = response.data.data;
 
-    if (!transactions || transactions.length === 0) {
-      return res.status(200).json({
-        customerCode,
-        totalReceived: 0,
-        message: 'No transactions found for this customer.'
-      });
-    }
+    // Filter by customerCode and status
+    const userTransactions = allTransactions.filter(
+      tx =>
+        tx.customer &&
+        tx.customer.customer_code === customerCode &&
+        tx.status === 'success'
+    );
 
-    const successfulTransactions = transactions.filter(tx => tx.status === 'success');
-    const totalReceived = successfulTransactions.reduce((sum, tx) => sum + tx.amount, 0) / 100;
+    const totalReceived = userTransactions.reduce((sum, tx) => sum + tx.amount, 0) / 100;
 
     return res.status(200).json({
       customerCode,
       totalReceived,
-      message: 'Balance calculated from successful transactions.'
+      transactions: userTransactions.length,
+      message: userTransactions.length === 0
+        ? 'No transactions found for this customer.'
+        : 'Balance calculated from successful transactions.'
     });
 
   } catch (error) {
-    console.error("Paystack API error:", error.response?.data || error.message);
+    console.error("Error fetching transactions:", error.response?.data || error.message);
     return res.status(500).json({
       error: 'Failed to fetch transactions',
       details: error.response?.data || error.message
