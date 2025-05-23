@@ -1,18 +1,22 @@
+// /api/get-balance.js
 import axios from 'axios';
 
 export default async function handler(req, res) {
-  const { customerCode } = req.query;
+  // Only allow POST requests
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: "Method not allowed" });
+  }
+
+  const { customerCode } = req.body;
 
   if (!customerCode) {
-    return res.status(400).json({ error: "Missing customerCode" });
+    return res.status(400).json({ error: "Missing customerCode in body" });
   }
 
   const PAYSTACK_SECRET = process.env.PAYSTACK_SECRET_KEY;
 
   try {
-    const url = `https://api.paystack.co/customer/${customerCode}/transactions`;
-
-    const response = await axios.get(url, {
+    const response = await axios.get(`https://api.paystack.co/customer/${customerCode}/transactions`, {
       headers: {
         Authorization: `Bearer ${PAYSTACK_SECRET}`,
         'Content-Type': 'application/json'
@@ -21,12 +25,10 @@ export default async function handler(req, res) {
 
     const transactions = response.data.data || [];
 
-    // Filter for successful bank transfers only
     const successfulBankTransactions = transactions.filter(txn =>
       txn.status === 'success' && txn.channel === 'bank'
     );
 
-    // Sum the amounts (Paystack returns kobo, so divide by 100)
     const totalReceived = successfulBankTransactions.reduce((sum, txn) => {
       return sum + txn.amount / 100;
     }, 0);
