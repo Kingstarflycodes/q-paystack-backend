@@ -40,6 +40,9 @@ export default async function handler(req, res) {
 
   } catch (error) {
     console.error("Paystack API Error:", error.response?.data || error.message);
-    return res.status(500).json({ error: "Failed to fetch transactions" });
+    return res.status(500).json({
+        error: "Failed to fetch transactions",
+        details: error.response?.data || error.message
+    });
   }
 }
