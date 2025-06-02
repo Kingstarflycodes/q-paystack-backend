@@ -19,7 +19,7 @@ export default async function handler(req, res) {
       'https://api.paystack.co/dedicated_account',
       {
         customer: customer_code,
-        preferred_bank: preferred_bank || 'test-bank' // Optional: default to Wema if not provided
+        preferred_bank: preferred_bank // Optional: default to Wema if not provided
       },
       {
         headers: {
