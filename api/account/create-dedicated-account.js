@@ -14,25 +14,52 @@ export default async function handler(req, res) {
     });
   }
 
+  const headers = {
+    Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+    'Content-Type': 'application/json'
+  };
+
   try {
+    // Check if a dedicated account already exists
+    const existingRes = await axios.get('https://api.paystack.co/dedicated_account', { headers });
+
+    const existingAccount = existingRes.data.data.find(
+      acc => acc.customer.customer_code === customer_code
+    );
+
+    if (existingAccount) {
+      return res.status(200).json({
+        success: true,
+        message: 'Dedicated account already exists for this customer',
+        response: {
+          data: {
+            bank: existingAccount.bank,
+            account_name: existingAccount.account_name,
+            account_number: existingAccount.account_number,
+            customer: existingAccount.customer,
+            assigned: existingAccount.assigned,
+            created_at: existingAccount.created_at
+          }
+        }
+      });
+    }
+
+    // Otherwise, create a new dedicated account
     const response = await axios.post(
       'https://api.paystack.co/dedicated_account',
       {
         customer: customer_code,
-        preferred_bank: preferred_bank // Optional: default to Wema if not provided
+        preferred_bank: preferred_bank
       },
-      {
-        headers: {
-          Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
-          'Content-Type': 'application/json'
-        }
-      }
+      { headers }
     );
 
     return res.status(200).json({
       success: true,
       message: 'Dedicated account created successfully',
-      data: response.data.data
+      response: {
+        data: response.data.data
+      }
     });
 
   } catch (error) {
@@ -40,7 +67,7 @@ export default async function handler(req, res) {
 
     return res.status(error.response?.status || 500).json({
       success: false,
-      message: 'Failed to create dedicated account',
+      message: 'Failed to create or check dedicated account',
       error: error.response?.data?.message || error.message
     });
   }
