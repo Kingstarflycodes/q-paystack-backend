@@ -49,7 +49,7 @@ export default async function handler(req, res) {
       'https://api.paystack.co/dedicated_account',
       {
         customer: customer_code,
-        preferred_bank: 'paystack' // Paystack Titan
+        preferred_bank: 'wema-bank' // Wema
       },
       { headers }
     );
