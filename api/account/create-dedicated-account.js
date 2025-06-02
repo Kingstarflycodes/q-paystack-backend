@@ -5,7 +5,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ success: false, message: 'Method not allowed' });
   }
 
-  const { customer_code, preferred_bank } = req.body;
+  const { customer_code } = req.body;
 
   if (!customer_code) {
     return res.status(400).json({
@@ -20,7 +20,7 @@ export default async function handler(req, res) {
   };
 
   try {
-    // Check if a dedicated account already exists
+    // Check if a dedicated account already exists for the customer
     const existingRes = await axios.get('https://api.paystack.co/dedicated_account', { headers });
 
     const existingAccount = existingRes.data.data.find(
@@ -44,12 +44,12 @@ export default async function handler(req, res) {
       });
     }
 
-    // Otherwise, create a new dedicated account
+    // Create a new dedicated account with Paystack Titan bank
     const response = await axios.post(
       'https://api.paystack.co/dedicated_account',
       {
         customer: customer_code,
-        preferred_bank: preferred_bank
+        preferred_bank: 'paystack' // Paystack Titan
       },
       { headers }
     );
