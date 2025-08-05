@@ -5,16 +5,17 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { subaccount } = req.body;
-  const email = 'helloquorix@gmail.com';
-  const amount = 100;
+  const { email, amount } = req.body;
+
+  if (!email || !amount) {
+    return res.status(400).json({ error: 'Email and amount are required' });
+  }
 
   try {
     const response = await axios.post('https://api.paystack.co/transaction/initialize', {
-      email: email,
+      email,
       amount: amount * 100,
-      channels: ['bank_transfer'],
-      subaccount: subaccount
+      channels: ['bank_transfer']
     }, {
       headers: {
         Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
@@ -32,7 +33,7 @@ export default async function handler(req, res) {
     });
 
   } catch (error) {
-    console.error('Bank transfer init error:', error?.response?.data || error.message);
+    console.error('Bank transfer init error:', error?.response?.data || error.toString());
     res.status(500).json({
       error: error?.response?.data || 'Error initializing bank transfer'
     });
